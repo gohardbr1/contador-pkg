@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Conferência de Expedição - Mercado Livre</title>
+    <!-- HTML5 QR / Barcode Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #334155;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            color: #38bdf8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .subtitle {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        /* Dashboard Counters */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #f8fafc;
+            line-height: 1.1;
+        }
+
+        .stat-value.highlight {
+            color: #4ade80;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* Camera Box */
+        .camera-container {
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #38bdf8;
+            margin-bottom: 12px;
+            min-height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #reader {
+            width: 100%;
+        }
+
+        /* Feedback Overlay */
+        #feedback-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            text-align: center;
+            padding: 20px;
+            animation: pulse 0.2s ease-in-out;
+        }
+
+        #feedback-overlay.success {
+            background-color: rgba(22, 101, 52, 0.95);
+        }
+
+        #feedback-overlay.error {
+            background-color: rgba(153, 27, 27, 0.98);
+        }
+
+        .feedback-title {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #fff;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .feedback-code {
+            font-size: 1.2rem;
+            background: rgba(0,0,0,0.4);
+            padding: 8px 16px;
+            border-radius: 8px;
+            word-break: break-all;
+            color: #f8fafc;
+            font-family: monospace;
+        }
+
+        /* Action Buttons */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        .btn-success { background: #16a34a; }
+        .btn-danger { background: #dc2626; }
+        .btn-outline { background: #1e293b; border: 1px solid #475569; color: #cbd5e1; }
+
+        /* Settings Accordion */
+        .settings-box {
+            background: #1e293b;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .settings-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            background: #0f172a;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            color: #f8fafc;
+            font-size: 0.85rem;
+        }
+
+        /* Scanned List */
+        .list-container {
+            background: #1e293b;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            padding: 12px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            max-height: 250px;
+        }
+
+        .list-header {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .scanned-list {
+            list-style: none;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .scanned-item {
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .scanned-code {
+            font-family: monospace;
+            font-weight: 600;
+            color: #38bdf8;
+        }
+
+        .scanned-time {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>📦 Conferencia de Pacotes</h1>
+        <div class="subtitle">Modo Bancada de Expedição</div>
+    </header>
+
+    <!-- Stat Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value highlight" id="count-total">0</div>
+            <div class="stat-label">Conferidos Hoje</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="count-meta">--</div>
+            <div class="stat-label" id="label-meta">Meta do Dia</div>
+        </div>
+    </div>
+
+    <!-- Camera Container -->
+    <div class="camera-container">
+        <div id="reader"></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-grid">
+        <button class="btn btn-success" onclick="exportCSV()">📥 Baixar CSV</button>
+        <button class="btn btn-danger" onclick="clearData()">🗑️ Limpar Lote</button>
+    </div>
+
+    <!-- Google Sheets Webhook Integration -->
+    <div class="settings-box">
+        <div class="settings-title">
+            <span>🔗 Integração Google Sheets (Opcional)</span>
+        </div>
+        <input type="text" id="sheets-url" placeholder="Cole a URL do Google Apps Script aqui..." onchange="saveSettings()">
+    </div>
+
+    <!-- Scanned Items List -->
+    <div class="list-container">
+        <div class="list-header">
+            <span>ÚLTIMAS BIPAGENS</span>
+            <span id="sync-status" style="color: #4ade80; font-size: 0.75rem;">● Armazenado Localmente</span>
+        </div>
+        <ul class="scanned-list" id="scanned-list">
+            <!-- Items injected dynamically -->
+        </ul>
+    </div>
+
+    <!-- Feedback Overlay -->
+    <div id="feedback-overlay">
+        <div class="feedback-title" id="feedback-title">OK!</div>
+        <div class="feedback-code" id="feedback-code">---</div>
+    </div>
+
+    <script>
+        // Audio Synthesizer via Web Audio API (Zero external audio assets needed)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playBeepSuccess() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1200, audioCtx.currentTime); // High pitch beep
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        function playBeepError() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, audioCtx.currentTime); // Low harsh alarm
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.6);
+        }
+
+        // App State
+        let scannedCodes = new Map(); // Code -> Timestamp
+        let html5QrcodeScanner = null;
+        let isProcessing = false;
+
+        // Today Key for LocalStorage
+        const todayStr = new Date().toISOString().split('T')[0];
+        const STORAGE_KEY = 'conferencia_ml_' + todayStr;
+        const SETTINGS_KEY = 'conferencia_ml_settings';
+
+        window.onload = function() {
+            loadSettings();
+            loadSavedData();
+            initScanner();
+        };
+
+        function loadSettings() {
+            const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+            if (settings.webhookUrl) {
+                document.getElementById('sheets-url').value = settings.webhookUrl;
+            }
+        }
+
+        function saveSettings() {
+            const webhookUrl = document.getElementById('sheets-url').value.trim();
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify({ webhookUrl }));
+        }
+
+        function loadSavedData() {
+            const rawData = localStorage.getItem(STORAGE_KEY);
+            if (rawData) {
+                const arr = JSON.parse(rawData);
+                arr.forEach(item => scannedCodes.set(item.code, item.time));
+            }
+            updateUI();
+        }
+
+        function saveData() {
+            const arr = Array.from(scannedCodes.entries()).map(([code, time]) => ({ code, time }));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+        }
+
+        function initScanner() {
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            const config = { 
+                fps: 15, 
+                qrbox: { width: 260, height: 160 },
+                aspectRatio: 1.0
+            };
+
+            html5QrcodeScanner.start(
+                { facingMode: "environment" }, 
+                config, 
+                onScanSuccess
+            ).catch(err => {
+                console.error("Erro ao iniciar câmera", err);
+            });
+        }
+
+        function onScanSuccess(decodedText) {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            const cleanCode = decodedText.trim();
+            const timeNow = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            if (scannedCodes.has(cleanCode)) {
+                // DUPLICATE DETECTED!
+                playBeepError();
+                showOverlay('error', '⚠️ DUPLICADO!', cleanCode);
+            } else {
+                // NEW VALID SCAN!
+                scannedCodes.set(cleanCode, timeNow);
+                saveData();
+                playBeepSuccess();
+                showOverlay('success', '✓ CONFERIDO', cleanCode);
+                sendToGoogleSheets(cleanCode, timeNow);
+                updateUI();
+            }
+
+            setTimeout(() => {
+                isProcessing = false;
+            }, 1800); // 1.8s delay to prevent accidental re-scanning
+        }
+
+        function showOverlay(type, title, code) {
+            const overlay = document.getElementById('feedback-overlay');
+            const titleEl = document.getElementById('feedback-title');
+            const codeEl = document.getElementById('feedback-code');
+
+            overlay.className = type;
+            titleEl.innerText = title;
+            codeEl.innerText = code;
+            overlay.style.display = 'flex';
+
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 1400);
+        }
+
+        function updateUI() {
+            document.getElementById('count-total').innerText = scannedCodes.size;
+            
+            const listEl = document.getElementById('scanned-list');
+            listEl.innerHTML = '';
+
+            const items = Array.from(scannedCodes.entries()).reverse();
+            items.forEach(([code, time]) => {
+                const li = document.createElement('li');
+                li.className = 'scanned-item';
+                li.innerHTML = `
+                    <span class="scanned-code">${code}</span>
+                    <span class="scanned-time">${time}</span>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        function sendToGoogleSheets(code, time) {
+            const webhookUrl = document.getElementById('sheets-url').value.trim();
+            if (!webhookUrl) return;
+
+            const payload = {
+                codigo: code,
+                horario: time,
+                data: todayStr
+            };
+
+            fetch(webhookUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(err => console.error("Erro ao enviar para o Sheets:", err));
+        }
+
+        function exportCSV() {
+            if (scannedCodes.size === 0) {
+                alert("Nenhum pacote conferido hoje ainda!");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,Data,Hora,Codigo_Pacote\n";
+            scannedCodes.forEach((time, code) => {
+                csvContent += `${todayStr},${time},"${code}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `conferencia_pacotes_${todayStr}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function clearData() {
+            if (confirm("Tem certeza que deseja limpar o lote de hoje? Isso resetará a contagem.")) {
+                scannedCodes.clear();
+                localStorage.removeItem(STORAGE_KEY);
+                updateUI();
+            }
+        }
+    </script>
+</body>
+</html>
