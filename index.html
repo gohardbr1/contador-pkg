@@ -95,6 +95,30 @@
             width: 100%;
         }
 
+        /* Switch Camera Button */
+        #switch-camera-btn {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #38bdf8;
+            color: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        #switch-camera-btn:active {
+            background: rgba(56, 189, 248, 0.3);
+        }
+
         /* Feedback Overlay */
         #feedback-overlay {
             position: fixed;
@@ -168,7 +192,6 @@
 
         .btn-success { background: #16a34a; }
         .btn-danger { background: #dc2626; }
-        .btn-outline { background: #1e293b; border: 1px solid #475569; color: #cbd5e1; }
 
         /* Settings Accordion */
         .settings-box {
@@ -277,6 +300,7 @@
     <!-- Camera Container -->
     <div class="camera-container">
         <div id="reader"></div>
+        <button id="switch-camera-btn" onclick="toggleCamera()">🔄 Girar Câmera</button>
     </div>
 
     <!-- Actions -->
@@ -344,6 +368,7 @@
         let scannedCodes = new Map(); // Code -> Timestamp
         let html5QrcodeScanner = null;
         let isProcessing = false;
+        let currentFacingMode = "environment"; // Inicia com a câmera traseira
 
         // Today Key for LocalStorage
         const todayStr = new Date().toISOString().split('T')[0];
@@ -383,7 +408,10 @@
         }
 
         function initScanner() {
-            html5QrcodeScanner = new Html5Qrcode("reader");
+            if (!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5Qrcode("reader");
+            }
+            
             const config = { 
                 fps: 15, 
                 qrbox: { width: 260, height: 160 },
@@ -391,12 +419,31 @@
             };
 
             html5QrcodeScanner.start(
-                { facingMode: "environment" }, 
+                { facingMode: currentFacingMode }, 
                 config, 
                 onScanSuccess
             ).catch(err => {
                 console.error("Erro ao iniciar câmera", err);
             });
+        }
+
+        // Função para Alternar entre Câmera Traseira e Frontal
+        function toggleCamera() {
+            const btn = document.getElementById('switch-camera-btn');
+            btn.innerHTML = "⏳ Trocando...";
+            
+            if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
+                html5QrcodeScanner.stop().then(() => {
+                    // Inverte o estado da câmera
+                    currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+                    // Reinicia com a nova lente
+                    initScanner();
+                    btn.innerHTML = "🔄 Girar Câmera";
+                }).catch(err => {
+                    console.error("Erro ao parar a câmera para trocar", err);
+                    btn.innerHTML = "🔄 Girar Câmera";
+                });
+            }
         }
 
         function onScanSuccess(decodedText) {
