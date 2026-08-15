@@ -509,20 +509,25 @@
             const webhookUrl = document.getElementById('sheets-url').value.trim();
             if (!webhookUrl) return;
 
-            // ADICIONADO: A "action" para o Google saber que quem está chamando é o leitor web
-            const payload = {
-                action: 'bipar',
-                codigo: code,
-                horario: time,
-                data: todayStr
-            };
+            // Transforma os dados em formato de formulário da web (seguro para no-cors)
+            const formData = new URLSearchParams();
+            formData.append('action', 'bipar');
+            formData.append('codigo', code);
+            formData.append('horario', time);
+            formData.append('data', todayStr);
 
             fetch(webhookUrl, {
                 method: 'POST',
                 mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).catch(err => console.error("Erro ao enviar para o Sheets:", err));
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
+            }).then(() => {
+                console.log("Pacote enviado (sincronização invisível).");
+            }).catch(err => {
+                console.error("Erro ao enviar para o Sheets:", err);
+            });
         }
 
         function exportCSV() {
